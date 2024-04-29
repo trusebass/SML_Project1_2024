@@ -24,7 +24,7 @@ def load_config():
     return config
 
 
-def load_dataset(config, split="train"):
+def load_dataset(config, split):
     labels = pd.read_csv(
         config["data_dir"] / f"{split}_labels.csv", dtype={"image_name": str}
     )
