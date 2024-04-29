@@ -11,15 +11,17 @@ config = load_config()
 model = joblib.load('models/RandomForestRegressor()_model.pkl')
 
 # Load your new test set from a different folder (not test)
-'''
-new_images, new_distances = load_dataset(config,"train")
+#'''
+new_images, new_distances = load_dataset(config,"public_test")
 print(f"[INFO]: Dataset loaded with {len(new_images)} samples.")
-'''
+#'''
 
 #To test on Data from the Training Set:
+'''
 training_images, training_distances = load_dataset(config,"train")
 train_images, new_images, train_distances, new_distances = train_test_split(training_images, training_distances, test_size=0.2, random_state=42)
 print(f"[INFO]: Dataset loaded with {len(new_images)} samples.")
+'''
 
 # Make predictions on the new test set
 pred_distances = model.predict(new_images)
