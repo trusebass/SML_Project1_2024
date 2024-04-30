@@ -55,7 +55,8 @@ def load_dataset(config, split):
         idx += 1
 
     distances = labels["distance"].to_numpy()
-    return images, distances
+    #Return of split added to return and then print out which dataset was loaded
+    return images, distances, split
 
 
 def load_private_test_dataset(config):

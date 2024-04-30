@@ -8,12 +8,12 @@ from sklearn.model_selection import train_test_split
 config = load_config()
 
 # Load the trained model
-model = joblib.load('models/RandomForestRegressor()_model.pkl')
+model = joblib.load('models/RandomForestRegressor()_5_0_model.pkl')
 
 # Load your new test set from a different folder (not test)
 #'''
-new_images, new_distances = load_dataset(config,"public_test")
-print(f"[INFO]: Dataset loaded with {len(new_images)} samples.")
+new_images, new_distances, dataset = load_dataset(config,"public_test")
+print(f"[INFO]: Dataset {dataset} loaded with {len(new_images)} samples.")
 #'''
 
 #To test on Data from the Training Set:

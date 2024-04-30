@@ -11,8 +11,8 @@ if __name__ == "__main__":
     config = load_config()
 
     # Load dataset: images and corresponding minimum distance values
-    images, distances = load_dataset(config,"train")
-    print(f"[INFO]: Dataset loaded with {len(images)} samples.")
+    images, distances, dataset = load_dataset(config,"train")
+    print(f"[INFO]: Dataset {dataset} oaded with {len(new_images)} samples.")
 
     
     
