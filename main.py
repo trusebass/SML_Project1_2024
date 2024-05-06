@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     # Load dataset: images and corresponding minimum distance values
     images, distances, dataset = load_dataset(config,"train")
-    print(f"[INFO]: Dataset {dataset} oaded with {len(new_images)} samples.")
+    print(f"[INFO]: Dataset {dataset} loaded with {len(images)} samples.")
 
     
     
@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     
     # Create the Random Forests model
-    model = RandomForestRegressor()
+    model = RandomForestRegressor(n_jobs = -1, random_state = 42)
 
     # Train the model
     model.fit(train_images, train_distances)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     ## name the trained model
     model_name = f"{str(model)}_model.pkl"
     
-    ## Create the models folder if it doesn't exist
+    ## Create the models folder if it doesn'aölkdsfjt exist
     models_folder = os.path.join(os.path.dirname(__file__), "models")
     os.makedirs(models_folder, exist_ok=True)
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
 
     # Make predictions
-    pred_distances = model.predict(images)
+    pred_distances = model.predict(test_images)
 
 
     # Print the results

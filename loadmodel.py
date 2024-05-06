@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 config = load_config()
 
 # Load the trained model
-model = joblib.load('models/RandomForestRegressor()_5_0_model.pkl')
+model = joblib.load('models/RandomForestRegressor()_5_T.pkl')
 
 # Load your new test set from a different folder (not test)
 #'''
