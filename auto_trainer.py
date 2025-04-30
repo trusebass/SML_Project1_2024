@@ -505,12 +505,11 @@ class AutoTrainer:
         with open("config.yaml", "w") as file:
             yaml.dump(current_config, file)
     
-    def run_training_iteration(self, pipeline_module, config):
+    def run_training_iteration(self, config):
         """
-        Run a single training iteration with the specified pipeline and config.
+        Run a single training iteration with the specified configuration.
         
         Args:
-            pipeline_module: Name of the pipeline module
             config: Configuration to use
             
         Returns:
@@ -518,7 +517,7 @@ class AutoTrainer:
         """
         print(f"\n{'='*80}")
         print(f"Starting iteration {self.iteration+1}/{self.max_iterations}")
-        print(f"Pipeline: {pipeline_module}")
+        print(f"Pipeline: {self.pipeline_module}")
         print(f"Configuration: {json.dumps(config, indent=2)}")
         print(f"{'='*80}\n")
         
@@ -527,63 +526,17 @@ class AutoTrainer:
         
         try:
             # Import the pipeline module dynamically
-            module = importlib.import_module(pipeline_module)
+            module = importlib.import_module(self.pipeline_module)
             
-            # Extract the model parameters if they exist
+            # Extract the model parameters
             model_params = config.get("model_params", {})
-            
-            # For pipeline4, we need to handle the model type
-            if pipeline_module == "MainScripts.pipeline4":
-                model_type = config.get("model_type", "hist_gbm")
-                target_sizes = config.get("target_sizes", [10, 20])
-                use_hog = config.get("use_hog", True)
-                use_edges = config.get("use_edges", True)
-                
-                # Modify the relevant variables in the module before running
-                if hasattr(module, "MultiScaleFeatureExtractor"):
-                    # Backup original init method
-                    original_init = module.MultiScaleFeatureExtractor.__init__
-                    
-                    # Define a custom init method to override parameters
-                    def custom_init(self, target_sizes=target_sizes, use_hog=use_hog, use_edges=use_edges):
-                        original_init(self, target_sizes=target_sizes, use_hog=use_hog, use_edges=use_edges)
-                    
-                    # Replace the init method
-                    module.MultiScaleFeatureExtractor.__init__ = custom_init
-                
-                # Now handle model selection in train_model_with_cross_validation
-                if hasattr(module, "train_model_with_cross_validation"):
-                    # We need to modify this function to prioritize our chosen model type
-                    original_train_func = module.train_model_with_cross_validation
-                    
-                    # Define a modified function that uses our preferences
-                    def modified_train_func(train_features, train_distances, n_splits=5):
-                        # Get the result from the original function
-                        best_model, best_params, best_pipeline_name, best_mae = original_train_func(
-                            train_features, train_distances, n_splits
-                        )
-                        
-                        # Return the results, original function already prioritizes best models
-                        return best_model, best_params, best_pipeline_name, best_mae
-                    
-                    # Replace the function
-                    module.train_model_with_cross_validation = modified_train_func
             
             # Record start time
             start_time = time.time()
             
             # Run the pipeline's main function
             if hasattr(module, "main"):
-                # Pass model_params to the main function if it accepts it
-                import inspect
-                main_func = module.main
-                accepts_model_params = "model_params" in inspect.signature(main_func).parameters
-                
-                if accepts_model_params:
-                    result = main_func(model_params=model_params)
-                else:
-                    # If the main function doesn't accept model_params, just run it normally
-                    result = main_func()
+                result = module.main(model_params=model_params)
             else:
                 # Run the module directly
                 result = None
@@ -591,33 +544,46 @@ class AutoTrainer:
             # Calculate training time
             training_time = time.time() - start_time
             
-            # Load the log file to get the latest result
-            model_log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
-                                         "model_logs", "model_training_log.json")
+            # Check if result is a tuple (mae, r2) or dictionary
+            if isinstance(result, tuple) and len(result) >= 2:
+                # If main returned (mae, r2, ...)
+                mae = result[0]
+                r2 = result[1]
+                
+                print(f"Successfully retrieved results from return value: MAE={mae}, R2={r2}")
+                
+                # Log the results for future reference
+                log_model_results(mae, r2, model_params, training_time, 
+                                 {"model_type": self.pipeline_module})
+                
+                return {
+                    "mae": mae,
+                    "r2": r2,
+                    "training_time": training_time,
+                    "success": True
+                }
+            elif result is not None and hasattr(result, 'get'):
+                # If result is a dictionary with mae and r2 keys
+                mae = result.get('mae', None)
+                r2 = result.get('r2', None)
+                
+                if mae is not None and r2 is not None:
+                    print(f"Successfully retrieved results from return dictionary: MAE={mae}, R2={r2}")
+                    
+                    # Log the results for future reference
+                    log_model_results(mae, r2, model_params, training_time, 
+                                     {"model_type": self.pipeline_module})
+                    
+                    return {
+                        "mae": mae,
+                        "r2": r2,
+                        "training_time": training_time,
+                        "success": True
+                    }
             
-            if os.path.exists(model_log_file):
-                with open(model_log_file, 'r') as f:
-                    model_logs = json.load(f)
-                    if model_logs:
-                        # Get the most recent log entry
-                        latest_log = model_logs[-1]
-                        mae = latest_log["metrics"]["mae"]
-                        r2 = latest_log["metrics"]["r2"]
-                        
-                        # Additional info from the log
-                        additional_info = latest_log.get("additional_info", {})
-                        
-                        return {
-                            "mae": mae,
-                            "r2": r2,
-                            "training_time": training_time,
-                            "additional_info": additional_info,
-                            "success": True
-                        }
-            
-            # If we couldn't get the results from the log file
-            # This should usually not happen if logging is working correctly
-            print("Warning: Could not get results from log file, using placeholder values")
+            # Fallback with placeholder values
+            print("Warning: Could not get results from pipeline execution.")
+            print("Make sure your pipeline's main function returns (mae, r2) or a dictionary with 'mae' and 'r2' keys.")
             return {
                 "mae": 999.0,  # Placeholder
                 "r2": 0.0,     # Placeholder
@@ -654,7 +620,7 @@ class AutoTrainer:
             pipeline_module, config = self.select_next_config()
             
             # Run the training iteration
-            results = self.run_training_iteration(pipeline_module, config)
+            results = self.run_training_iteration(config)
             
             # Check if the iteration was successful
             if results["success"]:
@@ -745,8 +711,21 @@ class AutoTrainer:
         times = [entry["training_time"] for entry in self.history]
         pipelines = [entry["pipeline"].split(".")[-1] for entry in self.history]
         
+        # Filter out placeholder values (failed iterations)
+        valid_indices = [i for i, mae in enumerate(maes) if mae < 900]  # Filter out placeholder 999.0 values
+        valid_iterations = [iterations[i] for i in valid_indices]
+        valid_maes = [maes[i] for i in valid_indices]
+        valid_r2s = [r2s[i] for i in valid_indices]
+        valid_times = [times[i] for i in valid_indices]
+        valid_pipelines = [pipelines[i] for i in valid_indices]
+        
+        # Check if we have any valid results
+        if not valid_maes:
+            print("Warning: No valid results to plot yet.")
+            return
+        
         # Create unique colors for each pipeline
-        unique_pipelines = list(set(pipelines))
+        unique_pipelines = list(set(valid_pipelines))
         colors = plt.cm.tab10(np.linspace(0, 1, len(unique_pipelines)))
         pipeline_colors = {pipe: colors[i] for i, pipe in enumerate(unique_pipelines)}
         
@@ -755,16 +734,16 @@ class AutoTrainer:
         
         # Plot points colored by pipeline
         for pipe in unique_pipelines:
-            pipe_indices = [i for i, p in enumerate(pipelines) if p == pipe]
-            pipe_iterations = [iterations[i] for i in pipe_indices]
-            pipe_maes = [maes[i] for i in pipe_indices]
+            pipe_indices = [i for i, p in enumerate(valid_pipelines) if p == pipe]
+            pipe_iterations = [valid_iterations[i] for i in pipe_indices]
+            pipe_maes = [valid_maes[i] for i in pipe_indices]
             plt.scatter(pipe_iterations, pipe_maes, label=pipe, color=pipeline_colors[pipe], s=50, alpha=0.7)
         
         # Plot overall trend line
-        if len(iterations) > 1:
-            z = np.polyfit(iterations, maes, 1)
+        if len(valid_iterations) > 1:
+            z = np.polyfit(valid_iterations, valid_maes, 1)
             p = np.poly1d(z)
-            plt.plot(iterations, p(iterations), "r--", alpha=0.8, label="Trend")
+            plt.plot(valid_iterations, p(valid_iterations), "r--", alpha=0.8, label="Trend")
         
         # Plot target line
         plt.axhline(y=self.target_mae, color='g', linestyle='-', alpha=0.5, label=f"Target ({self.target_mae})")
@@ -788,9 +767,9 @@ class AutoTrainer:
         
         # Plot points colored by pipeline
         for pipe in unique_pipelines:
-            pipe_indices = [i for i, p in enumerate(pipelines) if p == pipe]
-            pipe_times = [times[i] for i in pipe_indices]
-            pipe_maes = [maes[i] for i in pipe_indices]
+            pipe_indices = [i for i, p in enumerate(valid_pipelines) if p == pipe]
+            pipe_times = [valid_times[i] for i in pipe_indices]
+            pipe_maes = [valid_maes[i] for i in pipe_indices]
             plt.scatter(pipe_times, pipe_maes, label=pipe, color=pipeline_colors[pipe], s=50, alpha=0.7)
         
         plt.title('MAE vs Training Time')

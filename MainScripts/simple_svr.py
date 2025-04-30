@@ -69,11 +69,21 @@ def main(model_params=None):
     
     # Default parameter grid - will be used if model_params is None
     param_dist = {
-        'regressor__kernel': ['linear', 'poly', 'rbf'],
-        'regressor__C': [0.1, 1.0, 10.0, 100.0],
-        'regressor__gamma': ['scale', 'auto', 0.01, 0.1, 1.0],
-        'regressor__epsilon': [0.01, 0.05, 0.1, 0.2]
+        'regressor__kernel': ['linear', 'rbf'],
+        'regressor__C': [0.1, 10.0, 100.0],
+        'regressor__gamma': ['scale', 0.1],
+        'regressor__epsilon': [0.01, 0.1]
     }
+    
+    # Calculate total parameter space size for logging
+    param_space_size = 1
+    for param, values in param_dist.items():
+        param_space_size *= len(values)
+    print_progress(f"Parameter space size: {param_space_size} combinations")
+    
+    # Default n_iter - randomized search will use at most this many iterations
+    n_iter = min(20, param_space_size)
+    print_progress(f"Using n_iter={n_iter} for RandomizedSearchCV")
     
     # Override with provided parameters if available
     if model_params:
@@ -86,7 +96,7 @@ def main(model_params=None):
     # Use RandomizedSearchCV for efficient hyperparameter tuning
     print_progress("Starting hyperparameter search with RandomizedSearchCV")
     search = RandomizedSearchCV(
-        pipeline, param_dist, n_iter=10, cv=3,
+        pipeline, param_dist, n_iter=n_iter, cv=3,
         scoring='neg_mean_absolute_error', random_state=42, n_jobs=-1
     )
     

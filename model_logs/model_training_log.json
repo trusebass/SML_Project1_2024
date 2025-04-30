@@ -1,0 +1,579 @@
+[
+    {
+        "timestamp": "2025-04-24 19:12:25",
+        "model_name": "20250424_191225_RandomForest_model_downsample_dont_care.pkl",
+        "parameters": {
+            "rf__max_depth": 60,
+            "rf__min_samples_split": 2,
+            "rf__n_estimators": 500
+        },
+        "metrics": {
+            "mae": 0.31171,
+            "r2": 2.611
+        },
+        "training_time_seconds": 14.54,
+        "training_time_formatted": "0:00:14",
+        "additional_info": {
+            "model_type": "Pipeline with RandomForest",
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "grid_search_best_score": -0.30903231367501866,
+            "pipeline_steps": [
+                "scaler",
+                "pca",
+                "rf"
+            ]
+        }
+    },
+    {
+        "timestamp": "2025-04-24 19:15:30",
+        "model_name": "20250424_191530_RandomForest_model_downsample_dont_care.pkl",
+        "parameters": {
+            "rf__max_depth": 30,
+            "rf__min_samples_split": 2,
+            "rf__n_estimators": 500
+        },
+        "metrics": {
+            "mae": 0.22239,
+            "r2": 47.094
+        },
+        "training_time_seconds": 52.87,
+        "training_time_formatted": "0:00:52",
+        "additional_info": {
+            "model_type": "Pipeline with RandomForest",
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "grid_search_best_score": -0.23010501609479247,
+            "pipeline_steps": [
+                "scaler",
+                "pca",
+                "rf"
+            ]
+        }
+    },
+    {
+        "timestamp": "2025-04-24 19:18:53",
+        "model_name": "20250424_191853_RandomForest_model_downsample_dont_care.pkl",
+        "parameters": {
+            "rf__max_depth": 30,
+            "rf__min_samples_split": 2,
+            "rf__n_estimators": 500
+        },
+        "metrics": {
+            "mae": 0.18388,
+            "r2": 62.374
+        },
+        "training_time_seconds": 103.67,
+        "training_time_formatted": "0:01:43",
+        "additional_info": {
+            "model_type": "Pipeline with RandomForest",
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "grid_search_best_score": -0.18799113846716864,
+            "pipeline_steps": [
+                "scaler",
+                "pca",
+                "rf"
+            ]
+        }
+    },
+    {
+        "timestamp": "2025-04-24 19:37:24",
+        "model_name": "20250424_193723_RandomForest_model_downsample_dont_care.pkl",
+        "parameters": {
+            "rf__max_depth": 30,
+            "rf__min_samples_split": 2,
+            "rf__n_estimators": 500
+        },
+        "metrics": {
+            "mae": 0.18294,
+            "r2": 60.539
+        },
+        "training_time_seconds": 372.53,
+        "training_time_formatted": "0:06:12",
+        "additional_info": {
+            "model_type": "Pipeline with RandomForest",
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "grid_search_best_score": -0.18224641380550483,
+            "pipeline_steps": [
+                "scaler",
+                "pca",
+                "rf"
+            ]
+        }
+    },
+    {
+        "timestamp": "2025-04-24 20:16:56",
+        "model_name": "20250424_201656_RandomForest_model_downsample_dont_care.pkl",
+        "parameters": {
+            "rf__max_depth": 30,
+            "rf__min_samples_split": 2,
+            "rf__n_estimators": 500
+        },
+        "metrics": {
+            "mae": 0.1934,
+            "r2": 57.83
+        },
+        "training_time_seconds": 1031.06,
+        "training_time_formatted": "0:17:11",
+        "additional_info": {
+            "model_type": "Pipeline with RandomForest",
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "grid_search_best_score": -0.1868314693498806,
+            "pipeline_steps": [
+                "scaler",
+                "pca",
+                "rf"
+            ]
+        }
+    },
+    {
+        "timestamp": "2025-04-24 20:41:29",
+        "model_name": "20250424_204128_RandomForest_model_downsample_dont_care.pkl",
+        "parameters": {
+            "rf__max_depth": 30,
+            "rf__min_samples_split": 2,
+            "rf__n_estimators": 500
+        },
+        "metrics": {
+            "mae": 0.19246,
+            "r2": 58.358
+        },
+        "training_time_seconds": 1044.0,
+        "training_time_formatted": "0:17:24",
+        "additional_info": {
+            "model_type": "Pipeline with RandomForest",
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "grid_search_best_score": -0.18671708298855064,
+            "pipeline_steps": [
+                "scaler",
+                "pca",
+                "rf"
+            ]
+        }
+    },
+    {
+        "timestamp": "2025-04-25 01:28:00",
+        "model_name": "20250425_012740_StackedModel_with_texture.pkl",
+        "parameters": {
+            "stacked__knn__n_neighbors": 3,
+            "stacked__rf__max_depth": 30,
+            "stacked__rf__min_samples_leaf": 1,
+            "stacked__rf__n_estimators": 500,
+            "stacked__ridge__alpha": 0.1
+        },
+        "metrics": {
+            "mae": 0.27324,
+            "r2": 29.119
+        },
+        "training_time_seconds": 12497.1,
+        "training_time_formatted": "3:28:17",
+        "additional_info": {
+            "model_type": "Stacked Pipeline",
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "grid_search_best_score": -0.26762724387197745,
+            "pipeline_steps": [
+                "texture",
+                "edge_detection",
+                "analyzer",
+                "scaler",
+                "pca",
+                "stacked"
+            ],
+            "used_texture_features": true,
+            "used_stacking": true,
+            "config_rgb": false,
+            "config_downsample": 30
+        }
+    },
+    {
+        "timestamp": "2025-04-25 11:54:08",
+        "model_name": "20250425_115407_hist_gbm_Advanced.pkl",
+        "parameters": {
+            "regressor__min_samples_leaf": 5,
+            "regressor__max_iter": 500,
+            "regressor__max_depth": 7,
+            "regressor__learning_rate": 0.1,
+            "regressor__l2_regularization": 0.1
+        },
+        "metrics": {
+            "mae": 0.16567,
+            "r2": 65.125
+        },
+        "training_time_seconds": 3716.75,
+        "training_time_formatted": "1:01:56",
+        "additional_info": {
+            "model_type": "Advanced_hist_gbm",
+            "feature_method": "multi_scale_with_hog",
+            "feature_count": 236,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 30,
+            "validation_mae": 0.16733124989597076,
+            "error_stats": {
+                "mean_error": 0.009210414245292642,
+                "median_error": -0.009212692107548381,
+                "mean_abs_error": 0.16567096280610122,
+                "median_abs_error": 0.10410685597285019,
+                "std_error": 0.24736779055857042,
+                "max_abs_error": 1.6379280679424908,
+                "90th_percentile_error": 0.38298102717593324
+            },
+            "total_pipeline_time_seconds": 3716.7461240291595
+        }
+    },
+    {
+        "timestamp": "2025-04-25 15:15:04",
+        "model_name": "20250425_151504_SimpleLGBM.pkl",
+        "parameters": {
+            "regressor__subsample": 0.7,
+            "regressor__num_leaves": 63,
+            "regressor__n_estimators": 100,
+            "regressor__min_child_samples": 5,
+            "regressor__max_depth": 7,
+            "regressor__learning_rate": 0.1,
+            "regressor__colsample_bytree": 0.9
+        },
+        "metrics": {
+            "mae": 0.17094,
+            "r2": 63.803
+        },
+        "training_time_seconds": 51.05,
+        "training_time_formatted": "0:00:51",
+        "additional_info": {
+            "model_type": "SimpleLightGBM",
+            "feature_count": 900,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 10,
+            "randomized_search_best_score": -0.18420319350922626,
+            "total_pipeline_time_seconds": 51.048497438430786
+        }
+    },
+    {
+        "timestamp": "2025-04-25 15:25:11",
+        "model_name": "20250425_152511_SimpleLGBM.pkl",
+        "parameters": {
+            "regressor__subsample": 0.8,
+            "regressor__num_leaves": 63,
+            "regressor__n_estimators": 100,
+            "regressor__min_child_samples": 5,
+            "regressor__max_depth": 9,
+            "regressor__learning_rate": 0.1,
+            "regressor__colsample_bytree": 0.9
+        },
+        "metrics": {
+            "mae": 0.17264,
+            "r2": 64.625
+        },
+        "training_time_seconds": 606.38,
+        "training_time_formatted": "0:10:06",
+        "additional_info": {
+            "model_type": "SimpleLightGBM",
+            "feature_count": 5625,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 2,
+            "randomized_search_best_score": -0.18671801330460328,
+            "total_pipeline_time_seconds": 606.3840868473053
+        }
+    },
+    {
+        "timestamp": "2025-04-25 15:28:17",
+        "model_name": "20250425_152817_SimpleRF.pkl",
+        "parameters": {
+            "regressor__n_estimators": 500,
+            "regressor__min_samples_split": 10,
+            "regressor__min_samples_leaf": 1,
+            "regressor__max_features": "sqrt",
+            "regressor__max_depth": 10
+        },
+        "metrics": {
+            "mae": 0.19516,
+            "r2": 58.611
+        },
+        "training_time_seconds": 83.4,
+        "training_time_formatted": "0:01:23",
+        "additional_info": {
+            "model_type": "SimpleRandomForest",
+            "feature_count": 900,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 10,
+            "randomized_search_best_score": -0.20217369642611913,
+            "total_pipeline_time_seconds": 83.40361309051514
+        }
+    },
+    {
+        "timestamp": "2025-04-25 15:30:26",
+        "model_name": "20250425_153026_SimpleXGB.pkl",
+        "parameters": {
+            "regressor__subsample": 0.7,
+            "regressor__n_estimators": 100,
+            "regressor__min_child_weight": 1,
+            "regressor__max_depth": 5,
+            "regressor__learning_rate": 0.1,
+            "regressor__colsample_bytree": 0.9
+        },
+        "metrics": {
+            "mae": 0.16701,
+            "r2": 67.247
+        },
+        "training_time_seconds": 55.11,
+        "training_time_formatted": "0:00:55",
+        "additional_info": {
+            "model_type": "SimpleXGBoost",
+            "feature_count": 324,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 4,
+            "randomized_search_best_score": -0.1824897488058705,
+            "total_pipeline_time_seconds": 55.11090564727783
+        }
+    },
+    {
+        "timestamp": "2025-04-25 15:35:16",
+        "model_name": "20250425_153516_SimpleRF.pkl",
+        "parameters": {
+            "regressor__n_estimators": 300,
+            "regressor__min_samples_split": 10,
+            "regressor__min_samples_leaf": 8,
+            "regressor__max_features": "sqrt",
+            "regressor__max_depth": 30
+        },
+        "metrics": {
+            "mae": 0.18862,
+            "r2": 60.526
+        },
+        "training_time_seconds": 210.61,
+        "training_time_formatted": "0:03:30",
+        "additional_info": {
+            "model_type": "SimpleRandomForest",
+            "feature_count": 5625,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 2,
+            "randomized_search_best_score": -0.20335994033721855,
+            "total_pipeline_time_seconds": 210.60518312454224
+        }
+    },
+    {
+        "timestamp": "2025-04-25 15:38:33",
+        "model_name": "20250425_153833_SimpleXGB.pkl",
+        "parameters": {
+            "regressor__subsample": 0.8,
+            "regressor__n_estimators": 500,
+            "regressor__min_child_weight": 5,
+            "regressor__max_depth": 7,
+            "regressor__learning_rate": 0.1,
+            "regressor__colsample_bytree": 0.9
+        },
+        "metrics": {
+            "mae": 0.16382,
+            "r2": 69.297
+        },
+        "training_time_seconds": 197.18,
+        "training_time_formatted": "0:03:17",
+        "additional_info": {
+            "model_type": "SimpleXGBoost",
+            "feature_count": 324,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 4,
+            "randomized_search_best_score": -0.17618828852170976,
+            "total_pipeline_time_seconds": 197.17525506019592
+        }
+    },
+    {
+        "timestamp": "2025-04-25 16:06:52",
+        "model_name": "20250425_160652_SimpleXGB.pkl",
+        "parameters": {
+            "regressor__n_estimators": 100,
+            "regressor__max_depth": 7,
+            "regressor__learning_rate": 0.1
+        },
+        "metrics": {
+            "mae": 0.16783,
+            "r2": 67.144
+        },
+        "training_time_seconds": 1650.19,
+        "training_time_formatted": "0:27:30",
+        "additional_info": {
+            "model_type": "SimpleXGBoost",
+            "feature_count": 5625,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 2,
+            "randomized_search_best_score": -0.1779658076803904,
+            "total_pipeline_time_seconds": 1650.1902573108673
+        }
+    },
+    {
+        "timestamp": "2025-04-25 16:07:38",
+        "model_name": "20250425_160738_SimpleRF.pkl",
+        "parameters": {
+            "regressor__n_estimators": 200,
+            "regressor__min_samples_split": 10,
+            "regressor__min_samples_leaf": 1,
+            "regressor__max_features": "log2",
+            "regressor__max_depth": 50
+        },
+        "metrics": {
+            "mae": 0.18622,
+            "r2": 62.125
+        },
+        "training_time_seconds": 44.96,
+        "training_time_formatted": "0:00:44",
+        "additional_info": {
+            "model_type": "SimpleRandomForest",
+            "feature_count": 900,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 10,
+            "randomized_search_best_score": -0.20195300112697578,
+            "total_pipeline_time_seconds": 44.95713233947754
+        }
+    },
+    {
+        "timestamp": "2025-04-25 16:48:24",
+        "model_name": "20250425_164824_SimpleXGB.pkl",
+        "parameters": {
+            "regressor__subsample": 0.9,
+            "regressor__n_estimators": 500,
+            "regressor__min_child_weight": 7,
+            "regressor__max_depth": 7,
+            "regressor__learning_rate": 0.2,
+            "regressor__colsample_bytree": 0.8
+        },
+        "metrics": {
+            "mae": 0.17523,
+            "r2": 64.799
+        },
+        "training_time_seconds": 2446.55,
+        "training_time_formatted": "0:40:46",
+        "additional_info": {
+            "model_type": "SimpleXGBoost",
+            "feature_count": 5625,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 2,
+            "randomized_search_best_score": -0.17954468880866753,
+            "total_pipeline_time_seconds": 2446.549288034439
+        }
+    },
+    {
+        "timestamp": "2025-04-25 16:49:43",
+        "model_name": "20250425_164943_SimpleRF.pkl",
+        "parameters": {
+            "regressor__n_estimators": 200,
+            "regressor__min_samples_split": 2,
+            "regressor__min_samples_leaf": 1,
+            "regressor__max_features": "sqrt",
+            "regressor__max_depth": 30
+        },
+        "metrics": {
+            "mae": 0.17276,
+            "r2": 65.852
+        },
+        "training_time_seconds": 77.83,
+        "training_time_formatted": "0:01:17",
+        "additional_info": {
+            "model_type": "SimpleRandomForest",
+            "feature_count": 900,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 10,
+            "randomized_search_best_score": -0.1891047357167061,
+            "total_pipeline_time_seconds": 77.83434629440308
+        }
+    },
+    {
+        "timestamp": "2025-04-25 16:52:43",
+        "model_name": "20250425_165243_SimpleLGBM.pkl",
+        "parameters": {
+            "regressor__subsample": 0.8,
+            "regressor__num_leaves": 255,
+            "regressor__n_estimators": 100,
+            "regressor__min_child_samples": 5,
+            "regressor__max_depth": 5,
+            "regressor__learning_rate": 0.2,
+            "regressor__colsample_bytree": 1.0
+        },
+        "metrics": {
+            "mae": 0.17561,
+            "r2": 63.873
+        },
+        "training_time_seconds": 77.53,
+        "training_time_formatted": "0:01:17",
+        "additional_info": {
+            "model_type": "SimpleLightGBM",
+            "feature_count": 900,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 10,
+            "randomized_search_best_score": -0.18924677942921853,
+            "total_pipeline_time_seconds": 77.52651000022888
+        }
+    },
+    {
+        "timestamp": "2025-04-25 16:57:10",
+        "model_name": "20250425_165710_SimpleRF.pkl",
+        "parameters": {
+            "regressor__n_estimators": 50,
+            "regressor__max_features": "sqrt",
+            "regressor__max_depth": 10
+        },
+        "metrics": {
+            "mae": 0.19517,
+            "r2": 58.278
+        },
+        "training_time_seconds": 165.29,
+        "training_time_formatted": "0:02:45",
+        "additional_info": {
+            "model_type": "SimpleRandomForest",
+            "feature_count": 5625,
+            "dataset_size": 3000,
+            "train_size": 2400,
+            "test_size": 600,
+            "config_rgb": false,
+            "config_downsample": 2,
+            "randomized_search_best_score": -0.201226056223475,
+            "total_pipeline_time_seconds": 165.2874538898468
+        }
+    }
+]

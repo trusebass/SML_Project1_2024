@@ -66,30 +66,124 @@ def main(model_params=None):
         images, distances, test_size=0.2, random_state=42
     )
     
+    # Optionally downsample the images for even faster training
+    # This can be controlled via config.yaml's downsample_factor
+    img_size = train_images.shape[1]
+    img_dim = int(np.sqrt(img_size))
+    print_progress(f"Original image size: {img_size}, trying to reshape to {img_dim}x{img_dim}")
+    
+    # Validate if image is perfectly square
+    if img_dim * img_dim != img_size:
+        print_progress(f"Warning: Image is not perfectly square ({img_size} != {img_dim}²={img_dim*img_dim})")
+        # Find the closest perfect square dimension
+        img_dim = int(np.sqrt(img_size))
+        if img_dim * img_dim > img_size:
+            img_dim -= 1
+        print_progress(f"Adjusting to closest square dimension: {img_dim}x{img_dim} = {img_dim*img_dim}")
+        # Truncate images to the closest perfect square
+        if img_dim * img_dim < img_size:
+            train_images = train_images[:, :img_dim*img_dim]
+            test_images = test_images[:, :img_dim*img_dim]
+            print_progress(f"Truncated images to {img_dim*img_dim} pixels")
+    
+    print_progress(f"Original image dimensions: {img_dim}x{img_dim}")
+    
+    # Apply additional downsampling for speed if images are large
+    if img_dim > 50 and 'downsample_factor' in config:
+        # Ensure downsample factor divides the dimension evenly
+        factor = config['downsample_factor']
+        if img_dim % factor != 0:
+            # Find the closest factor that divides evenly
+            valid_factors = [f for f in range(1, min(factor*2, img_dim+1)) if img_dim % f == 0]
+            if valid_factors:
+                closest_factor = min(valid_factors, key=lambda x: abs(x - factor))
+                print_progress(f"Warning: Downsample factor {factor} doesn't divide {img_dim} evenly.")
+                print_progress(f"Adjusting to closest valid factor: {closest_factor}")
+                factor = closest_factor
+            else:
+                # Fallback to a safe value
+                factor = 1
+                print_progress(f"Warning: No valid downsample factors found. Using factor=1")
+        
+        print_progress(f"Further downsampling by factor of {factor} for speed")
+        # Reshaping for spatial downsampling
+        n_samples = train_images.shape[0]
+        new_dim = img_dim // factor
+        
+        # Fast downsampling by averaging blocks
+        downsampled_train = np.zeros((n_samples, new_dim * new_dim))
+        for i in range(n_samples):
+            img = train_images[i].reshape(img_dim, img_dim)
+            # Simple block averaging for speed
+            small_img = np.zeros((new_dim, new_dim))
+            for y in range(new_dim):
+                for x in range(new_dim):
+                    y_start = y * factor
+                    y_end = min((y + 1) * factor, img_dim)
+                    x_start = x * factor
+                    x_end = min((x + 1) * factor, img_dim)
+                    small_img[y, x] = np.mean(img[y_start:y_end, x_start:x_end])
+            downsampled_train[i] = small_img.flatten()
+            
+        # Same for test images
+        n_test = test_images.shape[0]
+        downsampled_test = np.zeros((n_test, new_dim * new_dim))
+        for i in range(n_test):
+            img = test_images[i].reshape(img_dim, img_dim)
+            small_img = np.zeros((new_dim, new_dim))
+            for y in range(new_dim):
+                for x in range(new_dim):
+                    y_start = y * factor
+                    y_end = min((y + 1) * factor, img_dim)
+                    x_start = x * factor
+                    x_end = min((x + 1) * factor, img_dim)
+                    small_img[y, x] = np.mean(img[y_start:y_end, x_start:x_end])
+            downsampled_test[i] = small_img.flatten()
+            
+        # Replace original images with downsampled versions
+        train_images = downsampled_train
+        test_images = downsampled_test
+        print_progress(f"Downsampled to {new_dim}x{new_dim} = {new_dim*new_dim} features")
+    
     feature_time = time.time()
     print_progress(f"Data preparation completed in {feature_time - start_time:.2f} seconds")
     
-    # Create a simple pipeline
+    # Create a simple pipeline with optimized LightGBM settings
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('regressor', LGBMRegressor(
             objective='regression_l1',  # MAE loss
             random_state=42,
-            n_jobs=-1,
-            verbose=-1  # Suppress LightGBM logs
+            n_jobs=4,             # Limit to 4 cores instead of -1 to avoid memory issues
+            verbose=-1,           # Suppress LightGBM logs
+            feature_fraction=0.8, # Use 80% of features per tree for faster training
+            bagging_fraction=0.8, # Use 80% of data per tree for faster training
+            bagging_freq=1,       # Enables bagging for speedup
+            boost_from_average=True, # Usually faster
+            extra_trees=True      # Can be faster than regular GBDT
         ))
     ])
     
     # Default parameter grid - will be used if model_params is None
     param_dist = {
-        'regressor__n_estimators': [100, 200, 500],
-        'regressor__max_depth': [3, 5, 7, 9, -1],  # -1 means no limit
-        'regressor__learning_rate': [0.01, 0.05, 0.1, 0.2],
-        'regressor__num_leaves': [31, 63, 127, 255],
-        'regressor__min_child_samples': [5, 10, 20, 50],
-        'regressor__subsample': [0.7, 0.8, 0.9, 1.0],
-        'regressor__colsample_bytree': [0.7, 0.8, 0.9, 1.0]
+        'regressor__n_estimators': [100, 500],
+        'regressor__max_depth': [3, 7, -1],  # -1 means no limit
+        'regressor__learning_rate': [0.01, 0.1],
+        'regressor__num_leaves': [31, 127],
+        'regressor__min_child_samples': [5, 20],
+        'regressor__subsample': [0.8, 1.0],
+        'regressor__colsample_bytree': [0.8, 1.0]
     }
+    
+    # Calculate total parameter space size for logging
+    param_space_size = 1
+    for param, values in param_dist.items():
+        param_space_size *= len(values)
+    print_progress(f"Parameter space size: {param_space_size} combinations")
+    
+    # Default n_iter - randomized search will use at most this many iterations
+    n_iter = min(20, param_space_size)
+    print_progress(f"Using n_iter={n_iter} for RandomizedSearchCV")
     
     # Override with provided parameters if available
     if model_params:
@@ -101,13 +195,34 @@ def main(model_params=None):
     
     # Use RandomizedSearchCV for efficient hyperparameter tuning
     print_progress("Starting hyperparameter search with RandomizedSearchCV")
-    search = RandomizedSearchCV(
-        pipeline, param_dist, n_iter=10, cv=3,
-        scoring='neg_mean_absolute_error', random_state=42, n_jobs=-1
-    )
-    
-    # Train the model
-    search.fit(train_images, train_distances)
+    try:
+        # First try with parallel processing but fewer CV folds for speed
+        search = RandomizedSearchCV(
+            pipeline, param_dist, n_iter=n_iter, cv=2,  # Reduced from 3 to 2 folds
+            scoring='neg_mean_absolute_error', random_state=42, 
+            n_jobs=4,  # Limit jobs to reduce memory pressure
+            return_train_score=False  # Saves memory and computation
+        )
+        
+        # Train the model
+        search.fit(train_images, train_distances)
+    except Exception as e:
+        print_progress(f"Error during parallel search: {str(e)}")
+        print_progress("Trying again with minimal configuration...")
+        
+        # Try again with minimal configuration
+        search = RandomizedSearchCV(
+            pipeline, 
+            {'regressor__n_estimators': [100],
+             'regressor__max_depth': [3],
+             'regressor__learning_rate': [0.1]}, 
+            n_iter=2, cv=2,
+            scoring='neg_mean_absolute_error', random_state=42, n_jobs=1,
+            verbose=1  # Add verbosity to see progress
+        )
+        
+        # Train the model with reduced settings
+        search.fit(train_images, train_distances)
     
     # Get best model
     best_model = search.best_estimator_

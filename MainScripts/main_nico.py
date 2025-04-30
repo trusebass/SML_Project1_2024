@@ -31,7 +31,7 @@ if __name__ == "__main__":
     config = load_config()  # Preprocess already implemented in the load_config function
 
     # Load dataset: images and corresponding minimum distance values
-    images, distances = load_dataset(config)
+    images, distances, dataset = load_dataset(config)
     print(f"[INFO]: Dataset loaded with {len(images)} samples.")
 
     scaler = StandardScaler().fit(images)  # StandardScaler implementation

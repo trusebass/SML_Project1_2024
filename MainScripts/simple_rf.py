@@ -58,23 +58,88 @@ def main(model_params=None):
         images, distances, test_size=0.2, random_state=42
     )
     
+    # Optionally downsample the images for even faster training
+    # This can be controlled via config.yaml's downsample_factor
+    img_dim = int(np.sqrt(train_images.shape[1]))
+    print_progress(f"Original image dimensions: {img_dim}x{img_dim}")
+    
+    # Apply additional downsampling for speed if images are large
+    if img_dim > 50 and 'downsample_factor' in config:
+        print_progress(f"Further downsampling by factor of {config['downsample_factor']} for speed")
+        # Reshaping for spatial downsampling
+        n_samples = train_images.shape[0]
+        factor = config['downsample_factor']
+        new_dim = img_dim // factor
+        
+        # Fast downsampling by averaging blocks
+        downsampled_train = np.zeros((n_samples, new_dim * new_dim))
+        for i in range(n_samples):
+            img = train_images[i].reshape(img_dim, img_dim)
+            # Simple block averaging for speed
+            small_img = np.zeros((new_dim, new_dim))
+            for y in range(new_dim):
+                for x in range(new_dim):
+                    y_start = y * factor
+                    y_end = min((y + 1) * factor, img_dim)
+                    x_start = x * factor
+                    x_end = min((x + 1) * factor, img_dim)
+                    small_img[y, x] = np.mean(img[y_start:y_end, x_start:x_end])
+            downsampled_train[i] = small_img.flatten()
+            
+        # Same for test images
+        n_test = test_images.shape[0]
+        downsampled_test = np.zeros((n_test, new_dim * new_dim))
+        for i in range(n_test):
+            img = test_images[i].reshape(img_dim, img_dim)
+            small_img = np.zeros((new_dim, new_dim))
+            for y in range(new_dim):
+                for x in range(new_dim):
+                    y_start = y * factor
+                    y_end = min((y + 1) * factor, img_dim)
+                    x_start = x * factor
+                    x_end = min((x + 1) * factor, img_dim)
+                    small_img[y, x] = np.mean(img[y_start:y_end, x_start:x_end])
+            downsampled_test[i] = small_img.flatten()
+            
+        # Replace original images with downsampled versions
+        train_images = downsampled_train
+        test_images = downsampled_test
+        print_progress(f"Downsampled to {new_dim}x{new_dim} = {new_dim*new_dim} features")
+    
     feature_time = time.time()
     print_progress(f"Data preparation completed in {feature_time - start_time:.2f} seconds")
     
-    # Create a simple pipeline
+    # Create a simple pipeline with optimized RandomForest settings
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
-        ('regressor', RandomForestRegressor(random_state=42, n_jobs=-1))
+        ('regressor', RandomForestRegressor(
+            random_state=42,
+            n_jobs=4,           # Limit to 4 cores to avoid memory issues
+            bootstrap=True,     # Enable bootstrapping for better stability
+            oob_score=False,    # Disable OOB to save computation
+            warm_start=False,   # Disable warm start for stability
+            max_samples=0.7     # Use 70% of samples per tree for faster training
+        ))
     ])
     
-    # Default parameter grid - will be used if model_params is None
+    # Default parameter grid - reduced size for faster and more stable training
     param_dist = {
-        'regressor__n_estimators': [100, 200, 500],
-        'regressor__max_depth': [None, 10, 20, 30, 50],
-        'regressor__min_samples_split': [2, 5, 10],
-        'regressor__min_samples_leaf': [1, 2, 4],
-        'regressor__max_features': ['auto', 'sqrt', 'log2']
+        'regressor__n_estimators': [50, 100, 200],
+        'regressor__max_depth': [10, 20, None],
+        'regressor__min_samples_split': [2, 5],
+        'regressor__min_samples_leaf': [1, 2],
+        'regressor__max_features': ['sqrt', 'log2']  # Removed 'auto' which can cause memory issues
     }
+    
+    # Calculate total parameter space size for logging
+    param_space_size = 1
+    for param, values in param_dist.items():
+        param_space_size *= len(values)
+    print_progress(f"Parameter space size: {param_space_size} combinations")
+    
+    # Default n_iter - randomized search will use at most this many iterations
+    n_iter = min(15, param_space_size)
+    print_progress(f"Using n_iter={n_iter} for RandomizedSearchCV")
     
     # Override with provided parameters if available
     if model_params:
@@ -86,13 +151,35 @@ def main(model_params=None):
     
     # Use RandomizedSearchCV for efficient hyperparameter tuning
     print_progress("Starting hyperparameter search with RandomizedSearchCV")
-    search = RandomizedSearchCV(
-        pipeline, param_dist, n_iter=10, cv=3,
-        scoring='neg_mean_absolute_error', random_state=42, n_jobs=-1
-    )
-    
-    # Train the model
-    search.fit(train_images, train_distances)
+    try:
+        # First try with parallel processing but fewer CV folds for speed
+        search = RandomizedSearchCV(
+            pipeline, param_dist, n_iter=n_iter, cv=2,  # Reduced from 3 to 2 folds
+            scoring='neg_mean_absolute_error', random_state=42, 
+            n_jobs=4,  # Limit jobs to reduce memory pressure
+            return_train_score=False,  # Saves memory and computation
+            error_score='raise'  # Explicitly raise errors for debugging
+        )
+        
+        # Train the model
+        search.fit(train_images, train_distances)
+    except Exception as e:
+        print_progress(f"Error during parallel search: {str(e)}")
+        print_progress("Trying again with minimal configuration...")
+        
+        # Try again with minimal configuration
+        search = RandomizedSearchCV(
+            pipeline, 
+            {'regressor__n_estimators': [50],
+             'regressor__max_depth': [10],
+             'regressor__max_features': ['sqrt']}, 
+            n_iter=1, cv=2,
+            scoring='neg_mean_absolute_error', random_state=42, n_jobs=1,
+            verbose=1  # Add verbosity to see progress
+        )
+        
+        # Train the model with reduced settings
+        search.fit(train_images, train_distances)
     
     # Get best model
     best_model = search.best_estimator_
