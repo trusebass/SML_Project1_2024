@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 import pandas as pd
 from PIL import Image
-#from tqdm import tqdm  # Import tqdm for progress bars
+from tqdm import tqdm  # Import tqdm for progress bars
 import datetime
 import json
 
@@ -108,64 +108,3 @@ def save_results(pred):
     with open("prediction.csv", 'w') as f: 
         f.write(text)
 
-
-def log_model_results(model_name, model_params, mae, r2, training_time=None, additional_info=None):
-    """
-    Log model training results to a JSON file.
-    
-    Args:
-        model_name (str): Name of the model file
-        model_params (dict): Dictionary of model parameters
-        mae (float): Mean Absolute Error
-        r2 (float): R-squared score (%)
-        training_time (float, optional): Training time in seconds
-        additional_info (dict, optional): Any additional information to log
-    """
-    # Create logs folder if it doesn't exist
-    logs_folder = os.path.join(os.path.dirname(__file__), "model_logs")
-    os.makedirs(logs_folder, exist_ok=True)
-    
-    # Create log file if it doesn't exist
-    log_file = os.path.join(logs_folder, "model_training_log.json")
-    
-    log_data = []
-    if os.path.exists(log_file):
-        try:
-            with open(log_file, 'r') as f:
-                log_data = json.load(f)
-        except json.JSONDecodeError:
-            # File exists but is empty or invalid
-            log_data = []
-    
-    # Prepare new log entry
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    entry = {
-        "timestamp": timestamp,
-        "model_name": model_name,
-        "parameters": model_params,
-        "metrics": {
-            "mae": round(float(mae), 5),
-            "r2": round(float(r2), 3)
-        }
-    }
-    
-    # Add training time if provided
-    if training_time is not None:
-        entry["training_time_seconds"] = round(float(training_time), 2)
-        entry["training_time_formatted"] = str(datetime.timedelta(seconds=int(training_time)))
-    
-    # Add additional info if provided
-    if additional_info:
-        entry["additional_info"] = additional_info
-    
-    # Append to existing log data
-    log_data.append(entry)
-    
-    # Write back to file
-    with open(log_file, 'w') as f:
-        json.dump(log_data, f, indent=4)
-    
-    # Print summary with training time if available
-    print(f"[INFO]: Model results logged to {log_file}")
-    if training_time is not None:
-        print(f"[INFO]: Total training time: {entry['training_time_formatted']} ({training_time:.2f} seconds)")

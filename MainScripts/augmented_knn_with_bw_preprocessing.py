@@ -44,12 +44,12 @@ class ImageAugmenter:
     
     def augment_dataset(self, images, distances, augmentation_factor=2):
         """
-        Augment datasetr
+        Augment the dataset by the specified factor
         
         Args:
-            images:  image dataset
-            distances: distance labels
-            augmentation_factor: how many times to multiply the dataset (can be float)
+            images: Original image dataset (each row is a flattened image)
+            distances: Original distance labels
+            augmentation_factor: How many times to multiply the dataset (can be float, e.g., 2.5)
             
         Returns:
             augmented_images, augmented_distances
@@ -60,12 +60,12 @@ class ImageAugmenter:
             print("Empty dataset provided, cannot augment")
             return images, distances
             
-        # Determine if images likely RGB based on dimensions
+        # Determine if images are likely RGB based on dimensions
         first_img_size = images[0].shape[0]
         img_dim_if_rgb = int(np.sqrt(first_img_size / 3))
         is_color = (first_img_size == img_dim_if_rgb * img_dim_if_rgb * 3)
         
-        # Calculate image dimensions based on RGB or grayscale
+        # Calculate image dimensions based on whether RGB or grayscale
         if is_color:
             img_dim = img_dim_if_rgb
             channels = 3
@@ -88,7 +88,7 @@ class ImageAugmenter:
         # Calculate how many new augmented batches to create (integer part)
         full_batches = int(augmentation_factor - 1)
         
-        # Calculate fractional part for partial batch
+        # Calculate the fractional part for partial batch
         fraction = augmentation_factor - 1 - full_batches
         
         # Generate full augmented batches
@@ -96,7 +96,7 @@ class ImageAugmenter:
             print(f"Creating full augmentation batch {i+1}/{full_batches}")
             augmented_batch = []
             
-            # Process each image in dataset
+            # Process each image in the dataset
             for j, flat_img in enumerate(tqdm(images, desc=f"Augmenting batch {i+1}")):
                 try:
                     # Create augmented image
@@ -105,14 +105,14 @@ class ImageAugmenter:
                     
                 except Exception as e:
                     print(f"Error augmenting image {j}: {str(e)}. Using original.")
-                    # If augmentation fails, use original image instead
+                    # If augmentation fails, use the original image instead
                     augmented_batch.append(flat_img)
             
             # Add augmented batch to full augmented dataset
             augmented_images.append(np.array(augmented_batch))
             augmented_distances.append(distances)  # Same distances for augmented images
         
-        # Create partial batch if needed (for float augmentation factor)
+        # Create partial batch if needed (for fractional augmentation factor)
         if fraction > 0:
             print(f"Creating partial augmentation batch ({fraction:.2f} of original size)")
             partial_batch = []
@@ -205,12 +205,18 @@ class ImagePreprocessor(BaseEstimator, TransformerMixin):
     """
     Image preprocessor that properly handles both RGB and grayscale images
     """
-    def __init__(self, use_edges=True, use_histogram_eq=True, use_clahe=True, use_lbp=False, force_grayscale=False):
+    def __init__(self, use_edges=True, use_histogram_eq=True, use_clahe=True, use_lbp=False, 
+                 force_grayscale=False, use_gabor=False, use_advanced_edges=False, 
+                 use_morphology=False, use_hog=False):
         self.use_edges = use_edges
         self.use_histogram_eq = use_histogram_eq
         self.use_clahe = use_clahe
         self.use_lbp = use_lbp
         self.force_grayscale = force_grayscale  # Use this to force grayscale processing
+        self.use_gabor = use_gabor
+        self.use_advanced_edges = use_advanced_edges
+        self.use_morphology = use_morphology
+        self.use_hog = use_hog
         
     def fit(self, X, y=None):
         return self
@@ -373,18 +379,94 @@ class ImagePreprocessor(BaseEstimator, TransformerMixin):
             if self.use_lbp:
                 lbp = local_binary_pattern(img_norm, P=8, R=1, method='uniform')
                 feature_list.append(lbp.flatten())
+            
+            # Gabor filter features
+            if self.use_gabor:
+                from skimage.filters import gabor
+                
+                # Apply gabor filters at different orientations
+                for theta in [0, np.pi/4, np.pi/2, 3*np.pi/4]:
+                    gabor_real, gabor_imag = gabor(img_norm, frequency=0.6, theta=theta, 
+                                                  sigma_x=1.0, sigma_y=1.0)
+                    # Use the real part for feature extraction
+                    feature_list.append(gabor_real.flatten())
+            
+            # Advanced edge detection
+            if self.use_advanced_edges:
+                from skimage.feature import canny
+                from skimage.filters import roberts, prewitt
+                
+                # Canny edge detector (more sophisticated than Sobel)
+                canny_edges = canny(img_norm, sigma=1.0)
+                feature_list.append(canny_edges.flatten())
+                
+                # Roberts cross edge detector (good for detailed edges)
+                roberts_edges = roberts(img_norm)
+                feature_list.append(roberts_edges.flatten())
+                
+                # Prewitt edge detector (another edge detection variant)
+                prewitt_edges = prewitt(img_norm)
+                feature_list.append(prewitt_edges.flatten())
+            
+            # Morphological features
+            if self.use_morphology:
+                from skimage.morphology import erosion, dilation, opening, closing, disk
+                
+                # Create structuring element
+                selem = disk(1)
+                
+                # Basic morphological operations
+                eroded = erosion(img_norm, selem)
+                dilated = dilation(img_norm, selem)
+                opened = opening(img_norm, selem)
+                closed = closing(img_norm, selem)
+                
+                # Add morphological features
+                feature_list.append(eroded.flatten())
+                feature_list.append(dilated.flatten())
+                feature_list.append(opened.flatten())
+                feature_list.append(closed.flatten())
+                
+                # Add morphological gradients (difference between operations)
+                # External gradient
+                ext_gradient = dilated - img_norm
+                feature_list.append(ext_gradient.flatten())
+                
+                # Internal gradient
+                int_gradient = img_norm - eroded
+                feature_list.append(int_gradient.flatten())
+            
+            # Histogram of Oriented Gradients (HOG) features
+            if self.use_hog:
+                from skimage.feature import hog
+                
+                # Extract HOG features
+                # Keep cells and block sizes relatively small for small images
+                img_size = img_norm.shape[0]
+                pixels_per_cell = max(4, img_size // 8)  # Adapt to image size
+                
+                hog_features = hog(
+                    img_norm, 
+                    orientations=8,
+                    pixels_per_cell=(pixels_per_cell, pixels_per_cell),
+                    cells_per_block=(2, 2),
+                    visualize=False,
+                    block_norm='L2-Hys'
+                )
+                feature_list.append(hog_features)
+                
         except Exception as e:
             print(f"Warning in feature extraction: {str(e)}")
             # Don't add any features if there's an error
 
 
-def run_knn_grid_search(X_train, y_train):
+def run_knn_grid_search(X_train, y_train, force_grayscale=False):
     """
     Run grid search for KNN with image preprocessing
     """
     # Define pipeline with preprocessing and KNN
     pipeline = Pipeline([
-        ('preprocessor', ImagePreprocessor()),
+        ('preprocessor', ImagePreprocessor(force_grayscale=force_grayscale)),
         ('scaler', StandardScaler()),
         ('pca', PCA(random_state=42)),
         ('knn', KNeighborsRegressor())
@@ -396,8 +478,12 @@ def run_knn_grid_search(X_train, y_train):
         'preprocessor__use_histogram_eq': [True, False],
         'preprocessor__use_clahe': [True, False],
         'preprocessor__use_lbp': [True, False],
-        'pca__n_components': [150],
-        'knn__n_neighbors': [2],
+        'preprocessor__use_gabor': [True, False],
+        'preprocessor__use_advanced_edges': [True, False],
+        'preprocessor__use_morphology': [False],  # Morphology adds many features, keeping it off by default
+        'preprocessor__use_hog': [True, False],
+        'pca__n_components': [100, 150, 200],
+        'knn__n_neighbors': [3, 5, 7],
         'knn__weights': ['distance'],
         'knn__p': [2],  # Euclidean distance
     }
@@ -436,11 +522,15 @@ def run_focused_knn(X_train, y_train, force_grayscale=False):
             use_edges=True,
             use_histogram_eq=True,
             use_clahe=True,
-            use_lbp=False,
-            force_grayscale=force_grayscale  # Force grayscale mode when needed
+            use_lbp=True,
+            force_grayscale=force_grayscale,  # Force grayscale mode when needed
+            use_gabor=True,              # Enable Gabor filter features
+            use_advanced_edges=True,     # Enable advanced edge detection
+            use_morphology=False,        # Disable morphology (can add many dimensions)
+            use_hog=True                 # Enable HOG features
         )),
         ('scaler', StandardScaler()),
-        ('pca', PCA(n_components=50, random_state=42)),
+        ('pca', PCA(n_components=150, random_state=42)),  # Increased components to handle more features
         ('knn', KNeighborsRegressor(n_neighbors=5, weights='distance', p=2))
     ])
     
@@ -480,7 +570,7 @@ if __name__ == "__main__":
     
     # Apply data augmentation
     AUGMENT_DATASET = True  # Set to False to skip augmentation
-    AUGMENTATION_FACTOR = 3.2  # How many times to multiply the dataset (e.g., 3 = triple)
+    AUGMENTATION_FACTOR = 3  # How many times to multiply the dataset (e.g., 3 = triple)
     
     if AUGMENT_DATASET:
         augmenter = ImageAugmenter(
@@ -497,7 +587,7 @@ if __name__ == "__main__":
         augmented_images, augmented_distances = images, distances
     
     # For hyperparameter tuning phase: Use train/test split to evaluate performance
-    FINAL_SUBMISSION = True  # Set to True for final model submission
+    FINAL_SUBMISSION = False  # Set to True for final model submission
     
     if not FINAL_SUBMISSION:
         # Development mode: Use train/test split for validation

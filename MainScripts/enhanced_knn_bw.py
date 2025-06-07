@@ -317,8 +317,8 @@ def run_focused_knn(X_train, y_train):
             normalize_features=False
         )),
         ('scaler', StandardScaler()),
-        ('pca', PCA(n_components=150, random_state=42)),
-        ('knn', KNeighborsRegressor(n_neighbors=3, weights='distance', p=2))
+        ('pca', PCA(n_components=50, random_state=42)),
+        ('knn', KNeighborsRegressor(n_neighbors=4, weights='distance', p=2))
     ])
     
     # Fit the pipeline

@@ -44,12 +44,12 @@ class ImageAugmenter:
     
     def augment_dataset(self, images, distances, augmentation_factor=2):
         """
-        Augment datasetr
+        Augment the dataset by the specified factor
         
         Args:
-            images:  image dataset
-            distances: distance labels
-            augmentation_factor: how many times to multiply the dataset (can be float)
+            images: Original image dataset (each row is a flattened image)
+            distances: Original distance labels
+            augmentation_factor: How many times to multiply the dataset (can be float, e.g., 2.5)
             
         Returns:
             augmented_images, augmented_distances
@@ -60,12 +60,12 @@ class ImageAugmenter:
             print("Empty dataset provided, cannot augment")
             return images, distances
             
-        # Determine if images likely RGB based on dimensions
+        # Determine if images are likely RGB based on dimensions
         first_img_size = images[0].shape[0]
         img_dim_if_rgb = int(np.sqrt(first_img_size / 3))
         is_color = (first_img_size == img_dim_if_rgb * img_dim_if_rgb * 3)
         
-        # Calculate image dimensions based on RGB or grayscale
+        # Calculate image dimensions based on whether RGB or grayscale
         if is_color:
             img_dim = img_dim_if_rgb
             channels = 3
@@ -88,7 +88,7 @@ class ImageAugmenter:
         # Calculate how many new augmented batches to create (integer part)
         full_batches = int(augmentation_factor - 1)
         
-        # Calculate fractional part for partial batch
+        # Calculate the fractional part for partial batch
         fraction = augmentation_factor - 1 - full_batches
         
         # Generate full augmented batches
@@ -96,7 +96,7 @@ class ImageAugmenter:
             print(f"Creating full augmentation batch {i+1}/{full_batches}")
             augmented_batch = []
             
-            # Process each image in dataset
+            # Process each image in the dataset
             for j, flat_img in enumerate(tqdm(images, desc=f"Augmenting batch {i+1}")):
                 try:
                     # Create augmented image
@@ -105,14 +105,14 @@ class ImageAugmenter:
                     
                 except Exception as e:
                     print(f"Error augmenting image {j}: {str(e)}. Using original.")
-                    # If augmentation fails, use original image instead
+                    # If augmentation fails, use the original image instead
                     augmented_batch.append(flat_img)
             
             # Add augmented batch to full augmented dataset
             augmented_images.append(np.array(augmented_batch))
             augmented_distances.append(distances)  # Same distances for augmented images
         
-        # Create partial batch if needed (for float augmentation factor)
+        # Create partial batch if needed (for fractional augmentation factor)
         if fraction > 0:
             print(f"Creating partial augmentation batch ({fraction:.2f} of original size)")
             partial_batch = []
@@ -378,53 +378,6 @@ class ImagePreprocessor(BaseEstimator, TransformerMixin):
             # Don't add any features if there's an error
 
 
-def run_knn_grid_search(X_train, y_train):
-    """
-    Run grid search for KNN with image preprocessing
-    """
-    # Define pipeline with preprocessing and KNN
-    pipeline = Pipeline([
-        ('preprocessor', ImagePreprocessor()),
-        ('scaler', StandardScaler()),
-        ('pca', PCA(random_state=42)),
-        ('knn', KNeighborsRegressor())
-    ])
-    
-    # Define parameter grid
-    param_grid = {
-        'preprocessor__use_edges': [True, False],
-        'preprocessor__use_histogram_eq': [True, False],
-        'preprocessor__use_clahe': [True, False],
-        'preprocessor__use_lbp': [True, False],
-        'pca__n_components': [150],
-        'knn__n_neighbors': [2],
-        'knn__weights': ['distance'],
-        'knn__p': [2],  # Euclidean distance
-    }
-    
-    # Create and run grid search
-    print("Starting GridSearchCV...")
-    grid_search = GridSearchCV(
-        pipeline,
-        param_grid,
-        cv=5,
-        scoring='neg_mean_absolute_error',
-        n_jobs=-1,
-        verbose=1
-    )
-    
-    # Fit the grid search
-    start_time = time.time()
-    grid_search.fit(X_train, y_train)
-    end_time = time.time()
-    
-    # Print results
-    print(f"GridSearchCV completed in {end_time - start_time:.2f} seconds")
-    print(f"Best parameters: {grid_search.best_params_}")
-    print(f"Best MAE score: {-grid_search.best_score_:.4f}")
-    
-    return grid_search.best_estimator_, grid_search.best_params_
-
 
 def run_focused_knn(X_train, y_train, force_grayscale=False):
     """
@@ -441,7 +394,7 @@ def run_focused_knn(X_train, y_train, force_grayscale=False):
         )),
         ('scaler', StandardScaler()),
         ('pca', PCA(n_components=50, random_state=42)),
-        ('knn', KNeighborsRegressor(n_neighbors=5, weights='distance', p=2))
+        ('knn', KNeighborsRegressor(n_neighbors=4, weights='distance', p=2))
     ])
     
     # Fit the pipeline
@@ -509,12 +462,8 @@ if __name__ == "__main__":
         USE_GRID_SEARCH = False  # Set to False for faster focused training
         
         try:
-            if USE_GRID_SEARCH:
-                # Run grid search to find the best model
-                best_model, best_params = run_knn_grid_search(images_train, distances_train)
-            else:
-                # Run focused training with selected parameters - force grayscale mode when not using RGB
-                best_model = run_focused_knn(images_train, distances_train, force_grayscale=not USE_RGB)
+            # Run focused training with selected parameters - force grayscale mode when not using RGB
+            best_model = run_focused_knn(images_train, distances_train, force_grayscale=not USE_RGB)
             
             # Make predictions on test set
             pred_distances = best_model.predict(images_test)
@@ -551,19 +500,20 @@ if __name__ == "__main__":
             # Force grayscale mode when not using RGB
             final_model = run_focused_knn(augmented_images, augmented_distances, force_grayscale=not USE_RGB)
             
-            # Save the model
+            # Create informative filename that describes pipeline configuration
+            augmentation_info = f"_{AUGMENTATION_FACTOR}x" if AUGMENT_DATASET else ""
+            rgb_mode = "rgb" if USE_RGB else "gray"
+            pipeline_name = f"augmented_knn{augmentation_info}_{rgb_mode}_pipeline.pkl"
+            
+            # Create models directory if it doesn't exist
             models_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
             os.makedirs(models_folder, exist_ok=True)
             
-            augmentation_info = f"_{AUGMENTATION_FACTOR}x" if AUGMENT_DATASET else ""
-            rgb_mode = "rgb" if USE_RGB else "gray"
-            model_name = f"augmented_knn{augmentation_info}_{rgb_mode}_model.pkl"
-            
-            
-            model_path = os.path.join(models_folder, model_name)
-            print(f"Saving final model trained on augmented data to {model_path}...")
-            joblib.dump(final_model, model_path)
-            print("Final model saved successfully!")
+            # Save the complete pipeline (includes preprocessing, scaling, PCA, and model)
+            pipeline_path = os.path.join(models_folder, pipeline_name)
+            print(f"Saving final pipeline trained on augmented data to {pipeline_path}...")
+            joblib.dump(final_model, pipeline_path)
+            print("Final pipeline saved successfully!")
             
             # Load and predict on test data
             try:
